@@ -1,0 +1,26 @@
+# GitHub Actions CI for the WCF Sample Project (Path A).
+# Build on push/PR to main. Windows runner because .NET Framework needs it.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+      - name: Restore NuGet packages
+        run: nuget restore WcfInventorySample.sln
+      - name: Build solution
+        run: msbuild WcfInventorySample.sln /p:Configuration=Release /p:Platform="Any CPU"
+      - name: Run tests
+        # Tune the assembly pattern to the real test project name when it lands.
+        run: vstest.console.exe **\bin\Release\*.Tests.dll
