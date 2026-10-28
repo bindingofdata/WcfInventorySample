@@ -1,0 +1,62 @@
+# Azure DevOps pipeline for the WCF Sample Project (Path A).
+# Stages run on separate agents, so NuGet restore runs as the first step of
+# Build (restored packages would not survive a stage boundary), and the
+# compiled output is passed to Test/Publish as a pipeline artifact.
+trigger:
+  - main
+
+pool:
+  vmImage: windows-latest
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - task: NuGetCommand@2
+            displayName: Restore NuGet packages
+            inputs:
+              command: restore
+              restoreSolution: WcfInventorySample.sln
+          - task: VSBuild@1
+            displayName: Build solution
+            inputs:
+              solution: WcfInventorySample.sln
+              configuration: Release
+          - task: PublishPipelineArtifact@1
+            displayName: Publish build output
+            inputs:
+              targetPath: $(Build.SourcesDirectory)
+              artifact: build-output
+
+  - stage: Test
+    dependsOn: Build
+    jobs:
+      - job: Test
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: build-output
+          - task: VSTest@2
+            displayName: Run tests
+            inputs:
+              testSelector: testAssemblies
+              testAssemblyVer2: |
+                **\*Tests.dll
+                !**\*TestAdapter.dll
+                !**\obj\**
+              searchFolder: $(Pipeline.Workspace)/build-output
+
+  - stage: Publish
+    dependsOn: Test
+    jobs:
+      - job: Publish
+        steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifact: build-output
+          - task: PublishBuildArtifacts@1
+            displayName: Publish drop
+            inputs:
+              PathtoPublish: $(Pipeline.Workspace)/build-output
+              ArtifactName: drop
