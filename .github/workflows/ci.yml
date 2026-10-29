@@ -22,5 +22,7 @@ jobs:
       - name: Build solution
         run: msbuild WcfInventorySample.sln /p:Configuration=Release /p:Platform="Any CPU"
       - name: Run tests
+        # No test project exists yet, so this step stays skipped until one lands.
+        if: hashFiles('tests/**/*.csproj') != ''
         # Tune the assembly pattern to the real test project name when it lands.
         run: vstest.console.exe **\bin\Release\*.Tests.dll
